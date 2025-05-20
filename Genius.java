@@ -12,12 +12,12 @@ public class Genius {
     static final int TEMPO_LIMITE = 10; // segundos
 
     public static void main(String[] args) throws InterruptedException, IOException {
-        int recorde = lerRecorde();
+        int recorde = lerRecordeDoArquivo();
 
         System.out.println("\nBem-vindo ao Genius! Repita a sequência de cores e números");
         System.out.println("\nCores: R (Vermelho), G (Verde), B (Azul), Y (Amarelo)");
         System.out.println("Números: 1, 2, 3, 4");
-        System.out.println("\nModo desafio: você tem " + TEMPO_LIMITE + " segundos para digitar a sequência!");
+        System.out.println("\nVocê terá " + TEMPO_LIMITE + " segundos para digitar a sequência em cada rodada!");
         System.out.println("Recorde atual: " + recorde);
         System.out.println("\nPressione Enter para começar...");
         scanner.nextLine();
@@ -25,7 +25,7 @@ public class Genius {
         while (true) {
             addColorToSequence();
             clearScreen();
-            System.out.println("Rodada: " + rodada);
+            System.out.println("Rodada: " + rodada + " | Tempo limite: " + TEMPO_LIMITE + " segundos");
             showSequence();
             clearScreen();
 
@@ -35,11 +35,13 @@ public class Genius {
                 printSequence();
                 System.out.println("Pontuação final: " + score);
 
-                if (score > recorde) {
+                salvarPontuacao(score);
+
+                int novoRecorde = lerRecordeDoArquivo();
+                if (score >= novoRecorde) {
                     System.out.println("🎉 Novo recorde!");
-                    salvarRecorde(score);
                 } else {
-                    System.out.println("Recorde atual permanece: " + recorde);
+                    System.out.println("Recorde atual permanece: " + novoRecorde);
                 }
                 break;
             }
@@ -61,30 +63,55 @@ public class Genius {
         System.out.println("Memorize a sequência:");
         for (char ch : sequence) {
             printColor(ch);
+            // beep removido aqui
             Thread.sleep(800);
         }
         Thread.sleep(1000);
         System.out.println();
     }
 
+    // beepForChar removido
+
     static boolean getPlayerInputWithTimeout() {
         System.out.println("Você tem " + TEMPO_LIMITE + " segundos para digitar a sequência:");
-        long startTime = System.currentTimeMillis();
+        final String[] input = new String[1];
 
-        while (!scanner.hasNextLine()) {
-            if ((System.currentTimeMillis() - startTime) / 1000 > TEMPO_LIMITE) {
-                return false;
+        Thread inputThread = new Thread(() -> input[0] = scanner.nextLine().toUpperCase());
+        inputThread.start();
+
+        Thread timerThread = new Thread(() -> {
+            try {
+                for (int i = TEMPO_LIMITE; i > 0; i--) {
+                    System.out.print("\rTempo restante: " + i + " segundos ");
+                    Thread.sleep(1000);
+                }
+                System.out.print("\r");
+            } catch (InterruptedException e) {
+                // interrompido se jogador terminar antes
             }
+        });
+        timerThread.start();
+
+        try {
+            inputThread.join(TEMPO_LIMITE * 1000L);
+        } catch (InterruptedException e) {
+            return false;
         }
 
-        String input = scanner.nextLine().toUpperCase();
+        timerThread.interrupt();
+        System.out.print("\r"); // limpa linha do tempo
 
-        if (input.length() != sequence.size()) {
+        if (input[0] == null) {
+            System.out.println("\n⏰ Tempo esgotado!");
+            return false;
+        }
+
+        if (input[0].length() != sequence.size()) {
             return false;
         }
 
         for (int i = 0; i < sequence.size(); i++) {
-            if (input.charAt(i) != sequence.get(i)) {
+            if (input[0].charAt(i) != sequence.get(i)) {
                 return false;
             }
         }
@@ -115,19 +142,35 @@ public class Genius {
         System.out.print(colorCode + ch + "\u001B[0m ");
     }
 
-    static int lerRecorde() {
-        try (BufferedReader reader = new BufferedReader(new FileReader("recorde.txt"))) {
-            return Integer.parseInt(reader.readLine());
-        } catch (Exception e) {
-            return 0;
+    static void salvarPontuacao(int pontos) {
+        String data = new Date().toString();
+        String linha = data + " - Pontuação: " + pontos;
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("pontuacoes.txt", true))) {
+            writer.write(linha);
+            writer.newLine();
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar pontuação.");
         }
     }
 
-    static void salvarRecorde(int novoRecorde) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("recorde.txt"))) {
-            writer.write(String.valueOf(novoRecorde));
+    static int lerRecordeDoArquivo() {
+        int maior = 0;
+        try (BufferedReader reader = new BufferedReader(new FileReader("pontuacoes.txt"))) {
+            String linha;
+            while ((linha = reader.readLine()) != null) {
+                if (linha.contains("Pontuação:")) {
+                    String[] partes = linha.split("Pontuação: ");
+                    if (partes.length > 1) {
+                        int valor = Integer.parseInt(partes[1].trim());
+                        if (valor > maior) {
+                            maior = valor;
+                        }
+                    }
+                }
+            }
         } catch (IOException e) {
-            System.out.println("Erro ao salvar o recorde.");
+            // arquivo pode não existir na primeira vez
         }
+        return maior;
     }
 }
