@@ -169,7 +169,7 @@ public class Genius {
                 }
             }
         } catch (IOException e) {
-            // arquivo pode não existir na primeira vez
+            
         }
         return maior;
     }
