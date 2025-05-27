@@ -9,7 +9,7 @@ public class Genius {
 
     static int score = 0;
     static int rodada = 1;
-    static final int TEMPO_LIMITE = 10; // segundos
+    static final int TEMPO_LIMITE = 10; 
 
     public static void main(String[] args) throws InterruptedException, IOException {
         int recorde = lerRecordeDoArquivo();
@@ -70,8 +70,6 @@ public class Genius {
         System.out.println();
     }
 
-    // beepForChar removido
-
     static boolean getPlayerInputWithTimeout() {
         System.out.println("Você tem " + TEMPO_LIMITE + " segundos para digitar a sequência:");
         final String[] input = new String[1];
@@ -87,7 +85,7 @@ public class Genius {
                 }
                 System.out.print("\r");
             } catch (InterruptedException e) {
-                // interrompido se jogador terminar antes
+                
             }
         });
         timerThread.start();
@@ -99,10 +97,10 @@ public class Genius {
         }
 
         timerThread.interrupt();
-        System.out.print("\r"); // limpa linha do tempo
+        System.out.print("\r"); 
 
         if (input[0] == null) {
-            System.out.println("\n⏰ Tempo esgotado!");
+            System.out.println("\n Tempo esgotado!");
             return false;
         }
 
